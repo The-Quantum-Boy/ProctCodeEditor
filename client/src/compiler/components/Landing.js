@@ -18,6 +18,7 @@ import OutputDetails from "./OutputDetails";
 import ThemeDropdown from "./ThemeDropdown";
 import LanguagesDropdown from "./LanguagesDropdown";
 import { useLocation } from "react-router-dom";
+import Timer from "../../Timer/Timer";
 
 const javascriptDefault = `
    #include<iostream.h>
@@ -229,6 +230,12 @@ const Landing = () => {
               <b>Marks</b>
             </h2>
             {data.outOfMarks}
+          </div>
+          <div className="bg-[#1e293b] rounded-md h-full w-full p-4">
+            <h2>
+              <b>Timer</b>
+            </h2>
+            <Timer minutes={data.minutes} />
           </div>
         </div>
       </div>
