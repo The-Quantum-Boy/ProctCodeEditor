@@ -46,9 +46,18 @@ const LabSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  submitBy: {
-    type: Array,
-  },
+  submitBy: [
+    {
+      profileId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users",
+      },
+      correct: {
+        type: Boolean,
+        default: false,
+      },
+    },
+  ],
   startDate: {
     type: Date,
   },

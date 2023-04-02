@@ -1,26 +1,31 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from "react";
 
-const Timer = ({minutes}) => {
- const [timeLeft, setTimeLeft] = useState(minutes * 60 * 10);
+const Timer = ({ minutes }) => {
+  const [timeLeft, setTimeLeft] = useState(minutes * 60 * 10);
+  let intervalId;
 
- useEffect(() => {
-   const intervalId = setInterval(() => {
-     setTimeLeft((prevTimeLeft) => prevTimeLeft - 1);
-   }, 100);
+  useEffect(() => {
+    intervalId = setInterval(() => {
+      setTimeLeft((prevTimeLeft) => prevTimeLeft - 1);
+    }, 100);
 
-   return () => clearInterval(intervalId);
- }, []);
+    return () => clearInterval(intervalId);
+  }, []);
 
- const minutesLeft = Math.floor((timeLeft / 10 / 60) % 60);
- const secondsLeft = Math.floor((timeLeft / 10) % 60);
- const tenthsLeft = timeLeft % 10;
+  const minutesLeft = Math.floor((timeLeft / 10 / 60) % 60);
+  const secondsLeft = Math.floor((timeLeft / 10) % 60);
+  const tenthsLeft = timeLeft % 10;
 
- return (
-   <div>
-     {minutesLeft < 10 ? "0" + minutesLeft : minutesLeft}:
-     {secondsLeft < 10 ? "0" + secondsLeft : secondsLeft}:{tenthsLeft}
-   </div>
- );
-}
+  if (timeLeft <= 0) {
+    clearInterval(intervalId);
+  }
 
-export default Timer
+  return (
+    <div>
+      {minutesLeft < 10 ? "0" + minutesLeft : minutesLeft}:
+      {secondsLeft < 10 ? "0" + secondsLeft : secondsLeft}:{tenthsLeft}
+    </div>
+  );
+};
+
+export default Timer;

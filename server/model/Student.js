@@ -8,10 +8,14 @@ const StudentSchema = mongoose.Schema({
   attemptedTest: {
     type: Array,
   },
-  // testStatus:{
-  //   type: Array,
-  // },
+  attemptedLab: {
+    type: Array,
+  },
+
   testStatus: {
+    type: Array,
+  },
+  labStatus: {
     type: Array,
   },
   createdAt: {

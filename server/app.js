@@ -10,9 +10,8 @@ const app = express();
 dotenv.config({ path: "./config.env" });
 require("./db/conn");
 
-
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3001");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST");
   next();
@@ -22,7 +21,6 @@ app.use(cookieParser());
 app.use(myParser.json({ limit: "200mb" }));
 app.use(myParser.urlencoded({ limit: "200mb", extended: true }));
 app.use(myParser.text({ limit: "200mb" }));
-
 
 app.use(require("./routes/user"));
 

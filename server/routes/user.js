@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../model/User");
 const Lab = require("../model/Lab");
+const LabOut = require("../model/LabOutput");
+const LabOutput = require("../model/LabOutput");
 
 const router = express.Router();
 
@@ -40,7 +42,7 @@ router.post("/fetchlab", async (req, res) => {
         if (!lab) {
           return res.status(404).json({ error: "lab not found" });
         }
-        return res.status(200).json({ lab });
+        return res.status(200).json({ lab, user: userExits });
       } catch (error) {
         console.log(error);
         return res.status(500).json({ error: "Internal Server Error" });
@@ -49,6 +51,52 @@ router.post("/fetchlab", async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.post("/submitLab", async (req, res) => {
+
+  console.log("i am in submit lab");
+  try {
+    const {
+      profileId,
+      labNo,
+      subjectName,
+      code,
+      output,
+      progLang,
+      procterData,
+    } = req.body;
+
+
+
+    const labOutput = new LabOutput({
+      profileId,
+      labNo,
+      subjectName,
+      code,
+      output,
+      progLang,
+      procterData,
+    });
+
+    const savedLabOutput = await labOutput.save();
+
+    const lab = await Lab.findOne({ labNo, subjectName });
+
+    if (!lab) {
+      return res.status(404).json({ error: "Lab not found" });
+    }
+
+    lab.submitBy.push({ profileId, correct: false });
+    lab.attempted = true;
+
+    await lab.save();
+
+    return res.status(200).json({ message: "Lab output saved successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
   }
 });
 
