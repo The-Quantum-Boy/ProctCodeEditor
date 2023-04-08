@@ -11,6 +11,13 @@ const LabOutput = require("../model/LabOutput");
 
 const router = express.Router();
 
+var compiler = require("compilex");
+compiler.flush(function () {
+  console.log("All temporary files flushed !");
+});
+var options = { stats: true }; //prints stats on console
+compiler.init(options);
+
 require("../db/conn");
 
 router.get("/", (req, res) => {
@@ -55,7 +62,6 @@ router.post("/fetchlab", async (req, res) => {
 });
 
 router.post("/submitLab", async (req, res) => {
-
   console.log("i am in submit lab");
   try {
     const {
@@ -67,8 +73,6 @@ router.post("/submitLab", async (req, res) => {
       progLang,
       procterData,
     } = req.body;
-
-
 
     const labOutput = new LabOutput({
       profileId,
@@ -97,6 +101,79 @@ router.post("/submitLab", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
+  }
+});
+
+router.post("/execute", (req, res) => {
+  const { lang, input, code } = req.body;
+
+  try {
+    // compiler.flush(function(){
+    //     console.log('All temporary files flushed !');
+    // });
+
+    if (lang === "C" || lang === "Cpp") {
+      var envData = { OS: "windows", cmd: "g++", options: { timeout: 10000 } };
+      if (input === "") {
+        compiler.compileCPP(envData, code, function (data) {
+          console.log(data);
+          res.send(data);
+        });
+        // compiler.flush(function(){
+        //     console.log('All temporary files flushed !');
+        // });
+      } else {
+        compiler.compileCPPWithInput(envData, code, input, function (data) {
+          res.send(data);
+        });
+        // compiler.flush(function(){
+        //     console.log('All temporary files flushed !');
+        // });
+      }
+    } else if (lang === "Python") {
+      var envData = { OS: "windows" };
+      if (input === "") {
+        compiler.compilePython(envData, code, function (data) {
+          res.send(data);
+        });
+        // compiler.flush(function(){
+        //     console.log('All temporary files flushed !');
+        // });
+      } else {
+        compiler.compilePythonWithInput(envData, code, input, function (data) {
+          res.send(data);
+        });
+        // compiler.flush(function(){
+        //     console.log('All temporary files flushed !');
+        // });
+      }
+    } else if (lang === "Java") {
+      //  compiler.flush(function(){
+      //         console.log('All temporary files flushed !');
+      //     });
+      var envData = { OS: "windows", options: { timeout: 10000 } };
+      // compiler.init(options);
+      if (input === "") {
+        compiler.compileJava(envData, code, function (data) {
+          res.send(data);
+        });
+        // compiler.flush(function(){
+        //     console.log('All temporary files flushed !');
+        // });
+      } else {
+        compiler.compileJavaWithInput(envData, code, input, function (data) {
+          res.send(data);
+        });
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    compiler.flush(function () {
+      console.log("All temporary files flushed !");
+    });
+    res.send({
+      error: error,
+    });
   }
 });
 

@@ -332,7 +332,7 @@ const Landing = () => {
 
     const intervalId = setInterval(() => {
       detect(model, net, mobilenetModel, analyser, dataArray);
-    }, 700);
+    }, 600);
 
     //to stop execution after perticular time
     setTimeout(() => {
