@@ -31,5 +31,5 @@ export const languageOptions = [
     name: "JavaScript ",
     label: "JavaScript ",
     value: "javascript",
-  }
+  },
 ];

@@ -3,7 +3,7 @@ import CodeEditorWindow from "./CodeEditorWindow";
 import axios from "axios";
 import { classnames } from "../utils/general";
 import { languageOptions } from "../constants/languageOptions";
-import * as mobilenet from "@tensorflow-models/mobilenet";
+import * as cocossd from "@tensorflow-models/coco-ssd";
 import swal from "sweetalert";
 import * as posenet from "@tensorflow-models/posenet";
 import { ToastContainer, toast } from "react-toastify";
@@ -21,8 +21,6 @@ import OutputDetails from "./OutputDetails";
 import ThemeDropdown from "./ThemeDropdown";
 import LanguagesDropdown from "./LanguagesDropdown";
 import { useLocation } from "react-router-dom";
-import Timer from "../../Timer/Timer";
-import Procter from "../../Proctering/Procter";
 
 const javascriptDefault = `
    #include<iostream>
@@ -49,28 +47,39 @@ const Landing = () => {
   const [processing, setProcessing] = useState(null);
   const [theme, setTheme] = useState("cobalt");
   const [language, setLanguage] = useState(languageOptions[0]);
+  const [timerId, setTimerId] = useState(null);
 
   // chartdata
-  const [tab_change, setTabChange] = useState(0);
+
+  const [tabChange, setTabChange] = useState(0);
+  const [multiFace, setMultiFace] = useState(0);
   const [key_press, setKeyPress] = useState(0);
-  const [mobileCount, setMobileCount] = useState(0);
-  const [downCount, setDownCount] = useState(0);
-  const [leftCount, setLeftCount] = useState(0);
-  const [rightCount, setRightCount] = useState(0);
-  const [screenCount, setScreenCount] = useState(0);
+  const [cheat, setCheat] = useState(0);
+  const [mobile, setMobile] = useState(0);
   const [faceNotVisible, setFaceNotVisible] = useState(0);
+  const [screenCount, setScreenCount] = useState(0);
+  const [downCount, setDownCount] = useState(0);
+  const [rightCount, setRightCount] = useState(0);
+  const [leftCount, setLeftCount] = useState(0);
   const [speakCount, setSpeakCount] = useState(0);
 
+  let speaking = false;
+
+  const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
+
   const chartData = {
-    tab_change: tab_change,
+    tab_change: tabChange,
     key_press: key_press,
     speakCount: speakCount,
-    mobileCount: mobileCount,
+    mobileCount: mobile,
     downCount: downCount,
     leftCount: leftCount,
     rightCount: rightCount,
     screenCount: screenCount,
     faceNotVisible: faceNotVisible,
+    multipleFace: multiFace,
+    cheating: cheat,
   };
 
   //to handle procter chartData
@@ -101,30 +110,6 @@ const Landing = () => {
       }
     }
   };
-
-  //timer
-
-  // useEffect(() => {
-  //   const intervalId = setInterval(() => {
-  //     setTimeRemaining((prevTime) => prevTime - 1);
-  //   }, 1000);
-
-  //   return () => clearInterval(intervalId);
-  // }, []);
-
-  // const formatTime = (time) => {
-  //   const minutes = Math.floor(time / 60);
-  //   const seconds = time % 60;
-  //   return `${minutes.toString().padStart(2, "0")}:${seconds
-  //     .toString()
-  //     .padStart(2, "0")}`;
-  // };
-
-  // useEffect(() => {
-  //   if (timeRemaining === 0) {
-  //     handleSubmit(code, outputDetails, language);
-  //   }
-  // }, [timeRemaining]);
 
   const handleSubmit = async (code, outputDetails, language) => {
     const out =
@@ -161,15 +146,6 @@ const Landing = () => {
     } catch (error) {
       console.log(error);
     }
-
-    //   console.log(chartData); //chartData
-    //   console.log(code); //code
-    //   console.log(
-    //     atob(outputDetails.stdout) !== null
-    //       ? `${atob(outputDetails.stdout)}`
-    //       : null
-    //   ); //output
-    //   console.log(language); //language object
   };
 
   const handleCompile = () => {
@@ -296,27 +272,11 @@ const Landing = () => {
    *
    */
   //procter code goes here
-  //disable right click
-  document.addEventListener("contextmenu", (event) => {
-    event.preventDefault();
-  });
-
-  const webcamRef = useRef(null);
-  const canvasRef = useRef(null);
-  const blazeface = require("@tensorflow-models/blazeface");
-
-  let model, net, mobilenetModel;
-
-  const loadModels = async () => {
-    model = await blazeface.load();
-    net = await posenet.load();
-    mobilenetModel = await mobilenet.load();
-    console.log("Proctor Model is Loaded..");
-  };
-
-  //face detection start
-  const runFacedetection = async () => {
-    await loadModels();
+  const runCoco = async () => {
+    const net = await cocossd.load();
+    const looking = await posenet.load();
+    console.log("procter model loaded.", net);
+    //  Loop and detect student
 
     //speak count
     const audioContext = new AudioContext();
@@ -330,120 +290,136 @@ const Landing = () => {
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    const intervalId = setInterval(() => {
-      detect(model, net, mobilenetModel, analyser, dataArray);
-    }, 600);
-
-    //to stop execution after perticular time
-    setTimeout(() => {
-      clearInterval(intervalId);
-    }, data.minutes * 60 * 1000);
+    setInterval(() => {
+      detect(net, looking, analyser, dataArray);
+    }, 100);
   };
-  const returnTensors = false;
-  let speaking = false;
 
-  const detect = async (model, net, mobilenetModel, analyser, dataArray) => {
+  const detect = async (net, looking, analyser, dataArray) => {
+    // Check data is available
     if (
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
       webcamRef.current.video.readyState === 4
     ) {
-      // Get video properties
+      // Get Video Properties
       const video = webcamRef.current.video;
       const videoWidth = webcamRef.current.video.videoWidth;
       const videoHeight = webcamRef.current.video.videoHeight;
 
-      // const threshold = 0.2; // to adjust this value to set the mouth open threshold
-
-      //Set video height and width
+      // Set video width
       webcamRef.current.video.width = videoWidth;
       webcamRef.current.video.height = videoHeight;
 
-      //Set canvas height and width
+      // Set canvas height and width
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
 
-      // Make detections
-      const prediction = await model.estimateFaces(video, returnTensors);
-      const mobilePrediction = await mobilenetModel.classify(video);
+      // Make Detections
+      const prediction = await net.detect(video);
+      const pose = await looking.estimateSinglePose(video);
 
-      //logs the how many user are in ther frame
-      console.log(prediction.length + " user are present");
-      if (prediction.length > 1) {
-        swal(
-          `${prediction.length} people detected`,
-          "Action has been Recorded",
-          "error"
-        );
-        console.log("second user detected");
-      }
+      console.log(prediction);
 
-      setTimeout(function () {
-        if (prediction.length === 0) {
-          setFaceNotVisible(faceNotVisible + 1);
+      // If there is no predictionect detected and no timer is running, start the timer
+      if (prediction.length === 0 && !timerId) {
+        const id = setTimeout(() => {
+          setFaceNotVisible((prevState) => prevState + 1);
           swal("Face Not Visible", "Action has been Recorded", "error");
-        }
-      }, 3000);
+          setTimerId(null);
+        }, 3000); // 3 seconds
+        setTimerId(id);
+      }
 
-      // console.log(mobilePrediction[0].className);
-      if (mobilePrediction[0].className.toLowerCase().includes("mobile")) {
-        setMobileCount(mobileCount + 1);
+      // If there is an predictionect detected, cancel the timer if it is running
+      if (prediction.length > 0 && timerId) {
+        clearTimeout(timerId);
+        setTimerId(null);
+      }
+
+      let faces = 0;
+
+      for (let i = 0; i < prediction.length; i++) {
+        if (prediction[i].class === "cell phone") {
+          setMobile((prevState) => prevState + 1);
+          swal("Cell Phone Detected", "Action has been Recorded", "error");
+        } else if (
+          prediction[i].class === "book" ||
+          prediction[i].class === "laptop"
+        ) {
+          setCheat((prevState) => prevState + 1);
+          swal(
+            "Prohibited Object Detected",
+            "Action has been Recorded",
+            "error"
+          );
+        } else if (prediction[i].class === "person") {
+          faces++;
+        }
+      }
+
+      if (faces > 1) {
+        setMultiFace((prevState) => prevState + 1);
         swal(
-          "Cell phone has been detected",
-          "Action has been Recorded",
+          faces.toString() + " people detected",
+          "Action has been recorded",
           "error"
         );
       }
-      //pose
-      const pose = await net.estimateSinglePose(video);
+
+      //detecting pose
+      let count = 0;
       const leftEye = pose.keypoints[1];
       const rightEye = pose.keypoints[2];
       const screenMidpoint = video.width / 2;
+      const nose = pose.keypoints[0];
+      const noseY = nose.position.y;
+      const noseThreshold = videoHeight * 0.7;
       if (
         leftEye.position.x <= screenMidpoint &&
         rightEye.position.x <= screenMidpoint
       ) {
-        setRightCount(rightCount + 1);
+        count++;
+        if (count >= 20) {
+          setLeftCount((prevState) => prevState + 1);
+          count = 0;
+        }
       } else if (
         leftEye.position.x >= screenMidpoint &&
         rightEye.position.x >= screenMidpoint
       ) {
-        setLeftCount(leftCount + 1);
-      } else {
-        setScreenCount(screenCount + 1);
-      }
-
-      //to detect if user is seeing down
-      const nose = pose.keypoints[0];
-      const noseY = nose.position.y;
-      const noseThreshold = videoHeight * 0.7;
-      if (noseY > noseThreshold) {
-        setDownCount(downCount + 1);
-      }
-
-      //to detect whether user is speaking or not
-      analyser.getByteTimeDomainData(dataArray);
-      const volume = Math.max(...dataArray) - 128;
-      if (volume > 15) {
-        if (!speaking) {
-          speaking = true;
-          setSpeakCount(speakCount + 1);
+        count++;
+        if (count >= 20) {
+          setRightCount((prevState) => prevState + 1);
+          count = 0;
         }
       } else {
-        speaking = false;
+        count++;
+        if (count >= 20) {
+          setScreenCount((prevState) => prevState + 1);
+          count = 0;
+          console.log("user is looking at the screen");
+        }
+      }
+      let dcount = 0;
+      if (noseY > noseThreshold) {
+        dcount++;
+        if (dcount >= 20) {
+          setDownCount((prevState) => prevState + 1);
+          dcount = 0;
+          swal("You are cheater", "Action has been Recorded", "error");
+        }
       }
 
-      //if tab changes
       if (document.hidden) {
-        // the page is hidden
-        setTabChange(tab_change + 1);
+        setTabChange((prevState) => prevState + 1);
         swal("Changed Tab Detected", "Action has been Recorded", "error");
       }
 
       //to detect ctrl key press
       document.addEventListener("keydown", function (event) {
         if (event.ctrlKey) {
-          setKeyPress(key_press + 1);
+          setKeyPress((prevState) => prevState + 1);
           swal("Ctrl Key Press Detected!", "Action has been Recorded", "error");
         }
       });
@@ -451,14 +427,36 @@ const Landing = () => {
       //to detect alt key press
       document.addEventListener("keydown", function (event) {
         if (event.altKey) {
-          setKeyPress(key_press + 1);
+          setKeyPress((prevState) => prevState + 1);
           swal("Alt Key Press Detected!", "Action has been Recorded", "error");
         }
       });
+
+      //detect speaking
+
+      analyser.getByteTimeDomainData(dataArray);
+      const volume = Math.max(...dataArray) - 128;
+      if (volume > 10) {
+        if (!speaking) {
+          speaking = true;
+          setSpeakCount((prevState) => prevState + 1);
+          if (speakCount >= 20) {
+            console.log(`User is speaking! Count: ${speakCount}`);
+          }
+        }
+      } else {
+        speaking = false;
+      }
+
+      // Draw mesh
+      // const ctx = canvasRef.current.getContext("2d");
+      // drawRect(prediction, ctx);
     }
   };
 
-  runFacedetection();
+  useEffect(() => {
+    runCoco();
+  }, []);
 
   return (
     <>

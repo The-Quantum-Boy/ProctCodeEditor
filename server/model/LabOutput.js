@@ -60,6 +60,14 @@ const labOutSchema = mongoose.Schema({
         type: Number,
         default: 0,
       },
+      multipleFace: {
+        type: Number,
+        default: 0,
+      },
+      cheating: {
+        type: Number,
+        default: 0,
+      },
     },
     default: {
       tab_change: 0,
@@ -71,6 +79,8 @@ const labOutSchema = mongoose.Schema({
       screenCount: 0,
       faceNotVisible: 0,
       speakCount: 0,
+      multipleFace:0,
+      cheating:0,
     },
   },
 });
