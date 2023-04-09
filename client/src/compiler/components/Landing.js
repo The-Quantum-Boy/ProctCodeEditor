@@ -11,6 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Webcam from "react-webcam";
+import * as tf from "@tensorflow/tfjs";
 
 import { defineTheme } from "../lib/defineTheme";
 import useKeyPress from "../hooks/useKeyPress";
@@ -273,6 +274,10 @@ const Landing = () => {
    */
   //procter code goes here
   const runCoco = async () => {
+
+    await tf.setBackend("webgl");
+    await tf.ready();
+
     const net = await cocossd.load();
     const looking = await posenet.load();
     console.log("procter model loaded.", net);
